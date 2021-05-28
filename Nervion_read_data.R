@@ -42,5 +42,4 @@ pstn <-ggplot(df, aes(x=Year,fill=factor(Colour))) +
 pstn
 
 
-ggsave("./png/station_count.png",pstn,dpi=300,units="cm",width=12,height=10)
-ggsave("./png/station_count.png",pstn,dpi=300,units="cm",width=12,height=10)
+ggsave("./png/station_count.png",pstn,dpi=100,units="cm",width=16,height=10)

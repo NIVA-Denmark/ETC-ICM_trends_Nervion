@@ -3,9 +3,10 @@ library(tidyverse)
 library(lubridate)
 library(patchwork)
 library(hrbrthemes)
+library(scales)
 
 # load data from AZTI
-xlfile<-"AZTI/ETC ICM task 1.6.2.1 data contaminants Nervión estuary for temporal trends.xls"
+xlfile<-"data/ETC ICM task 1.6.2.1 data contaminants Nervión estuary for temporal trends.xls"
 
 dfStn <- read_xls(xlfile,sheet="Sampling locations coordinates")
 dfW <- read_xls(xlfile,sheet="Water")
@@ -21,12 +22,12 @@ dfS <- dfS %>%
   mutate(Date=as.Date(`Sampling date`,tryFormats = c("%d/%m/%Y")))
 
 # load file matching parameter names from AZTI to CHASE parameters
-xlfile<-"AZTI/params_AZTI_CHASE.xlsx"
+xlfile<-"data/params_AZTI_CHASE.xlsx"
 dfParams <- read_xlsx(xlfile,sheet="PARAMS") %>%
   filter(Param!=0)
 
 # ------------- load CHASE threshold values ---------------------------------------
-dfThresholds<-read.table("CHASE_thresholds/thresholds_v6.txt",sep="\t",header=T,fileEncoding = "UTF-16") %>%
+dfThresholds<-read.table("data/thresholds_v6.txt",sep="\t",header=T,fileEncoding = "UTF-16") %>%
   filter(is.na(Exclude)) %>% 
   filter(Biota.Type!="Fish") %>%
   filter(Category!="BioEffects") %>%
@@ -43,6 +44,15 @@ dfThresholds <- dfThresholds %>%
 
 df <- bind_rows(dfW,dfB,dfS)
 df$ObsID <- 1:nrow(df)
+
+
+dfstn <- df %>%
+  mutate(Date=as.Date(`Sampling date`,tryFormats = c("%d/%m/%Y"))) %>%
+  mutate(Year=year(Date)) %>%
+  distinct(Year,`Sampling point`,`Matrix type`) %>%
+  mutate(Colour=ifelse(Year %in% c(2000,2010,2020),1,0))
+
+
 
 df <- df %>%
   mutate(ValueCorr = ifelse(Operator=="<",0.5,1)*as.numeric(Value))
@@ -175,7 +185,13 @@ p1 <-ggplot(dfPlotSW, aes(x=Year, y=CSlog)) +
   xlab("Year") + ylab("log10(CS)")
 
 p1
-ggsave("AZTI/png/SedimentWater.png",p1,dpi=300,units="cm",width=24,height=10)
+ggsave("png/SedimentWater.png",p1,dpi=300,units="cm",width=24,height=10)
+
+dfPlotB<-dfPlotBx
+
+dfPlotB[nrow(dfPlotB)+1,"Year"]<-2020
+dfPlotB[nrow(dfPlotB),"Station"]<-dfPlotB$Station[1]
+dfPlotB[nrow(dfPlotB),"Category"]<-dfPlotB$Category[1]
 
 p2 <-ggplot(dfPlotB, aes(x=Year, y=CSlog)) +
   geom_hline(yintercept=0,linetype=2) +
@@ -187,9 +203,10 @@ p2 <-ggplot(dfPlotB, aes(x=Year, y=CSlog)) +
   theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
         panel.spacing = unit(1, "lines")) +
   xlab("Year") + ylab("log10(CS)")
+  
 
 p2
-ggsave("AZTI/png/Biota.png",p2,dpi=300,units="cm",width=14,height=8)
+ggsave("png/Biota.png",p2,dpi=300,units="cm",width=14,height=8)
 
 
 dfSubsCount <- df %>%
@@ -218,61 +235,36 @@ p3
 
 
 
+library(hrbrthemes)
+library(patchwork)
+library(scales)
 
+mypal <- c("#AAAAAA","#666666")
+
+pstn <-ggplot(dfstn, aes(x=Year,fill=factor(Colour))) +
+  geom_histogram(stat="count",width=0.5,alpha=0.5) +
+  facet_grid(`Matrix type`~.) +
+  theme_ipsum() +
+  theme(panel.spacing = unit(1, "lines"),
+        strip.text.y = element_text(angle=0,size=9)) +
+  scale_y_continuous(breaks= pretty_breaks(n=3)) +
+  ylab("Count of stations") +
+  scale_fill_manual(guide=NULL,values=mypal)
+pstn
+
+
+layout <- '
+AAAA
+AAAA
+B###
+'
+pTS <- wrap_plots(A = p1, B = p2, design = layout)
+pTS
+
+ggsave("png/timeseries.png",pTS,dpi=100,units="cm",width=24,height=16)
 
 pcount <- pstn + p3 + plot_layout(ncol=1)
 pcount
 
-ggsave("AZTI/png/obs_station_count.png",pcount,dpi=300,units="cm",width=14,height=16)
+ggsave("png/obs_station_count.png",pcount,dpi=300,units="cm",width=14,height=16)
 
-
-if(F){
-  
-distinct(df,Date)
-
-
-
-test <- test %>%
-  left_join(df,by="ObsID")
-
-test <- test %>%
-  distinct(Species,Substance.name,Threshold.Value,Threshold.Unit,Threshold.BASIS,Biota.Type,Threshold.Species,Threshold.Tissue)
-
-
-params <- distinct(dfThresholds,Substance.name,PARAM) %>% arrange(Substance.name)
-
-vars<-df %>% 
-  group_by(Variable) %>% 
-  summarise(n=n()) %>%
-  arrange(Variable)
-
-write.table(vars,file="AZTI/params_AZTI.csv",sep=";",row.names=F,col.names=T)
-write.table(params,file="AZTI/params_CHASE.csv",sep=";",row.names=F,col.names=T)
-
-
-
-dfx <- dfS %>%
-  filter(Variable %in% c("% Organic matter","Hg")) %>%
-  select(Date,`Sampling point`,Variable,Value) %>%
-  mutate(Variable=ifelse(Variable=="% Organic matter","PctOrg",Variable)) %>%
-  mutate(Value=as.numeric(Value)) %>%
-  mutate(logVal = log10(Value)) %>%
-  pivot_wider(id_cols=c(Date,`Sampling point`),values_from=logVal,names_from=Variable)
-
-
-p1<-ggplot(dfx) + geom_point(aes(x=PctOrg,y=Hg,colour=`Sampling point`)) +
-  facet_wrap(.~`Sampling point`,ncol=3)
-p2<-ggplot(dfx) + geom_point(aes(x=PctOrg,y=Hg,colour=`Sampling point`)) 
-p1+p2+plot_layout(guides="collect")
-
-dfx <- dfS %>%
-  filter(Variable %in% c("% Organic matter","Hg")) %>%
-  select(Date,`Sampling point`,Variable,Value) %>%
-  mutate(Variable=ifelse(Variable=="% Organic matter","PctOrg",Variable)) %>%
-  mutate(Value=as.numeric(Value)) %>%
-  pivot_wider(id_cols=c(Date,`Sampling point`),values_from=Value,names_from=Variable) %>%
-  mutate(Hg_org=Hg/PctOrg)
-
-ggplot(dfx) + geom_point(aes(x=Date,y=Hg_org,colour=`Sampling point`)) +
-  facet_wrap(.~`Sampling point`,ncol=3)
-}
