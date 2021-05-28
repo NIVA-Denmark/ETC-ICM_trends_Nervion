@@ -254,9 +254,9 @@ pstn
 
 
 layout <- '
-AAAA
-AAAA
-B###
+AAAAAAAA
+AAAAAAAA
+###BB###
 '
 pTS <- wrap_plots(A = p1, B = p2, design = layout)
 pTS
