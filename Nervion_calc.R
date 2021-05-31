@@ -296,3 +296,95 @@ pcount
 
 ggsave("png/obs_station_count.png",pcount,dpi=300,units="cm",width=14,height=16)
 
+
+# ----------------------------------------Plot Contamination ratios for individual susbtances  ----------------------------------------
+
+stationlevelsSW <- c("E-N10","E-N15","E-N17","E-N20","E-N30","L-N10","L-N20","L-RF30")
+stationlevelsB <- c("I-N20","I-N10")
+
+
+dfSubstance <- df %>%
+  mutate(log10CR=log10(CR)) %>%
+  mutate(Substance.name = ifelse(nchar(Substance.name)>30,
+                                 paste0(substr(Substance.name,1,30),"\n",substr(Substance.name,31,99)),
+                                 Substance.name))
+
+
+dfPlotSsub <-dfSubstance %>% filter(Category %in% c("Sediment"))
+df_subs_S <- dfPlotSsub %>%
+  ungroup() %>%
+  distinct(Substance.name)%>%
+  arrange(Substance.name)
+df_subs_S <- df_subs_S$Substance.name
+dfPlotSsub$Station <- factor(dfPlotSsub$Station,levels=stationlevelsSW)        
+dfPlotSsub$Substance.name <- factor(dfPlotSsub$Substance.name,levels=df_subs_S)
+
+dfPlotWsub <- dfSubstance %>% filter(Category %in% c("Water"))
+df_subs_W <- dfPlotWsub %>%
+  ungroup() %>%
+  distinct(Substance.name)%>%
+  arrange(Substance.name)
+df_subs_W <- df_subs_W$Substance.name
+dfPlotWsub$Station <- factor(dfPlotWsub$Station,levels=stationlevelsSW)        
+dfPlotWsub$Substance.name <- factor(dfPlotWsub$Substance.name,levels=df_subs_W)  
+
+dfPlotBsub <- dfSubstance %>% filter(Category=="Biota")
+df_subs_B <- dfPlotBsub %>%
+  ungroup() %>%
+  distinct(Substance.name) %>%
+  arrange(Substance.name)
+df_subs_B <- df_subs_B$Substance.name
+dfPlotBsub$Station <- factor(dfPlotBsub$Station,levels=stationlevelsB)        
+dfPlotBsub$Substance.name <- factor(dfPlotBsub$Substance.name,levels=df_subs_B)
+
+p4 <-ggplot(dfPlotSsub, aes(x=Year, y=log10CR)) +
+  geom_hline(yintercept=0,linetype=2, color="#FF0000") +
+  geom_smooth(method='lm', aes(x=Year,y=log10CR),se=FALSE, color='turquoise4') +
+  geom_point(aes(x=Year,y=log10CR), colour="#000000") +
+  facet_grid(Substance.name~Station,scales="free_y") +
+  scale_color_manual(values=pal_class) +
+  theme_ipsum() +
+  labs(subtitle= "Substances in sediment") +
+  theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
+        strip.text.y = element_text(angle=0,size=7),
+        panel.spacing = unit(1, "lines")) +
+  xlab("Year") + ylab("log10(CR)")
+
+
+ggsave("png/substances_Sediment.png",p4,dpi=100,units="cm",width=24,height=50)
+
+
+p5 <-ggplot(dfPlotWsub, aes(x=Year, y=log10CR)) +
+  geom_hline(yintercept=0,linetype=2, color="#FF0000") +
+  geom_smooth(method='lm', aes(x=Year,y=log10CR),se=FALSE, color='turquoise4') +
+  geom_point(aes(x=Year,y=log10CR), colour="#000000") +
+  facet_grid(Substance.name~Station,scales="free_y") +
+  scale_color_manual(values=pal_class) +
+  theme_ipsum() +
+  labs(subtitle= "Substances in water") +
+  theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
+        strip.text.y = element_text(angle=0,size=7),
+        panel.spacing = unit(1, "lines")) +
+  xlab("Year") + ylab("log10(CR)")
+
+ggsave("png/substances_Water.png",p5,dpi=100,units="cm",width=24,height=100)
+
+
+p6 <-ggplot(dfPlotBsub, aes(x=Year, y=log10CR)) +
+  geom_hline(yintercept=0,linetype=2, color="#FF0000") +
+  geom_smooth(method='lm', aes(x=Year,y=log10CR),se=FALSE, color='turquoise4') +
+  geom_point(aes(x=Year,y=log10CR), colour="#000000") +
+  facet_grid(Substance.name~Station,scales="free_y") +
+  scale_color_manual(values=pal_class) +
+  theme_ipsum() +
+  labs(subtitle= "Substances in biota") +
+  theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
+        strip.text.y = element_text(angle=0,size=7),
+        panel.spacing = unit(1, "lines")) +
+  xlab("Year") + ylab("log10(CR)")
+
+ggsave("png/substances_Biota.png",p6,dpi=100,units="cm",width=12,height=50)
+
+
+
+

@@ -36,5 +36,10 @@ dfB <- read_xls(xlfile,sheet="Biota")
 
 ![Plot of station counts](png/station_count.png)
 
-![Timeseries of Contamination Ratio (CR)](png/timeseries.png)
+![Timeseries of Contamination Score (CS)](png/timeseries.png)
+
+![Timeseries of Contamination Ratio (CR) per substance in Sediment](png/substances_Sediment.png)
+![Timeseries of Contamination Ratio (CR) per substance in Water](png/substances_Water.png)
+![Timeseries of Contamination Ratio (CR) per substance in Biota](png/substances_Biota.png)
+
 
