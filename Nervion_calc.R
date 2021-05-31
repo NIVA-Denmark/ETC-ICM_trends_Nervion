@@ -5,6 +5,12 @@ library(patchwork)
 library(hrbrthemes)
 library(scales)
 
+
+
+pal_class<-c("#007eff","#00d600","#ffff00","#ff8c2b","#ff0000")
+ClassNames <- c("High","Good","Mod","Poor","Bad")
+
+
 # load data from AZTI
 xlfile<-"data/ETC ICM task 1.6.2.1 data contaminants Nervión estuary for temporal trends.xls"
 
@@ -173,12 +179,35 @@ dfPlotSW <- dfCategory %>% filter(Category %in% c("Sediment","Water"))
 dfPlotSW$Station <- factor(dfPlotSW$Station,levels=stationlevelsSW)                                  
 dfPlotB$Station <- factor(dfPlotB$Station,levels=stationlevelsB)                                  
 
+CHASEcat<-function(CS){
+  if(!is.numeric(CS)) return(NA)
+  cat <- ifelse(CS<0.5,1,2)
+  cat <- ifelse(CS>1,3,cat)
+  cat <- ifelse(CS>5,4,cat)
+  cat <- ifelse(CS>10,5,cat)
+  return(cat)
+}
+
+
+dfPlotSW <- dfPlotSW %>%
+  mutate(Cat=CHASEcat(CS)) %>%
+  mutate(Class=ClassNames[Cat])
+
+dfPlotSW[nrow(dfPlotSW)+1,"Year"]<-2020
+dfPlotSW[nrow(dfPlotSW),"Station"]<-dfPlotSW$Station[1]
+dfPlotSW[nrow(dfPlotSW),"Category"]<-dfPlotSW$Category[1]
+dfPlotSW[nrow(dfPlotSW),"Class"]<-"High"
+
+dfPlotSW$Class <- factor(dfPlotSW$Class,levels=ClassNames)
+
+alpha_bands<-0.4
+
 p1 <-ggplot(dfPlotSW, aes(x=Year, y=CSlog)) +
-  geom_hline(yintercept=0,linetype=2) +
-  #geom_boxplot(aes(group=cut_width(Year, 1))) +
-  geom_point(aes(x=Year,y=log10CSlog), colour="#FF0000") +
-  #geom_line(aes(x=Year,y=log10CSlog), colour="#FF0000", linetype = 1) +
+  geom_hline(yintercept=0,linetype=2, color="#FF0000") +
+  geom_smooth(method='lm', aes(x=Year,y=log10CSlog),se=FALSE, color='turquoise4') +
+  geom_point(aes(x=Year,y=log10CSlog), colour="#000000") +
   facet_grid(Category~Station,scales="free_y") +
+  scale_color_manual(values=pal_class) +
   theme_ipsum() +
   theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
         panel.spacing = unit(1, "lines")) +
@@ -194,10 +223,9 @@ dfPlotB[nrow(dfPlotB),"Station"]<-dfPlotB$Station[1]
 dfPlotB[nrow(dfPlotB),"Category"]<-dfPlotB$Category[1]
 
 p2 <-ggplot(dfPlotB, aes(x=Year, y=CSlog)) +
-  geom_hline(yintercept=0,linetype=2) +
-  #geom_boxplot(aes(group=cut_width(Year, 1))) +
-  #geom_line(aes(x=Year,y=log10CSlog), colour="#FF0000", linetype = 1) +
-  geom_point(aes(x=Year,y=log10CSlog), colour="#FF0000") +
+  geom_hline(yintercept=0,linetype=2, color="#FF0000") +
+  geom_smooth(method='lm', aes(x=Year,y=log10CSlog),se=FALSE, color='turquoise4') +
+  geom_point(aes(x=Year,y=log10CSlog), colour="#000000") +
   facet_grid(Category~Station,scales="free_y") +
   theme_ipsum() +
   theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
