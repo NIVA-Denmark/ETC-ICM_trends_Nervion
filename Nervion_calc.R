@@ -304,10 +304,12 @@ stationlevelsB <- c("I-N20","I-N10")
 
 
 dfSubstance <- df %>%
-  mutate(log10CR=log10(CR)) %>%
-  mutate(Substance.name = ifelse(nchar(Substance.name)>30,
-                                 paste0(substr(Substance.name,1,30),"\n",substr(Substance.name,31,99)),
-                                 Substance.name))
+  mutate(log10CR=log10(CR)) 
+
+# dfSubstance <-dfSubstance %>%
+#   mutate(Substance.name = ifelse(nchar(Substance.name)>30,
+#                                  paste0(substr(Substance.name,1,str_locate(Substance.name," ")-1),"\n",substr(Substance.name,str_locate(Substance.name," ")+1,99)),
+#                                  Substance.name))
 
 
 dfPlotSsub <-dfSubstance %>% filter(Category %in% c("Sediment"))
