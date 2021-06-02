@@ -216,8 +216,6 @@ p1 <-ggplot(dfPlotSW, aes(x=Year, y=CSlog)) +
 p1
 ggsave("png/SedimentWater.png",p1,dpi=300,units="cm",width=24,height=10)
 
-dfPlotB<-dfPlotBx
-
 dfPlotB[nrow(dfPlotB)+1,"Year"]<-2020
 dfPlotB[nrow(dfPlotB),"Station"]<-dfPlotB$Station[1]
 dfPlotB[nrow(dfPlotB),"Category"]<-dfPlotB$Category[1]
@@ -307,9 +305,19 @@ dfSubstance <- df %>%
   mutate(log10CR=log10(CR)) 
 
 # dfSubstance <-dfSubstance %>%
-#   mutate(Substance.name = ifelse(nchar(Substance.name)>30,
-#                                  paste0(substr(Substance.name,1,str_locate(Substance.name," ")-1),"\n",substr(Substance.name,str_locate(Substance.name," ")+1,99)),
-#                                  Substance.name))
+#   mutate(Substance.name = ifelse(is.na(str_locate(Substance.name,"\\?")),
+#                                    Substance.name,
+#                                    paste0(substr(Substance.name,1,str_locate(Substance.name,"\\?")-1),"\n",substr(Substance.name,str_locate(Substance.name,"\\?")+1,99))
+#   ))
+
+# test <- dfSubstance %>% 
+#   ungroup() %>%
+#   filter(Category %in% c("Water")) %>%
+#   distinct(Substance.name)
+# 
+# test <- test %>%
+#   mutate(n = str_locate(Substance.name,"\\?")) %>%
+
 
 
 dfPlotSsub <-dfSubstance %>% filter(Category %in% c("Sediment"))
@@ -360,7 +368,7 @@ p5 <-ggplot(dfPlotWsub, aes(x=Year, y=log10CR)) +
   geom_hline(yintercept=0,linetype=2, color="#FF0000") +
   geom_smooth(method='lm', aes(x=Year,y=log10CR),se=FALSE, color='turquoise4') +
   geom_point(aes(x=Year,y=log10CR), colour="#000000") +
-  facet_grid(Substance.name~Station,scales="free_y") +
+  facet_grid(Substance.name~Station,scales="free_y",labeller=label_wrap_gen(width=30)) +
   scale_color_manual(values=pal_class) +
   theme_ipsum() +
   labs(subtitle= "Substances in water") +
