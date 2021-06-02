@@ -368,7 +368,7 @@ p5 <-ggplot(dfPlotWsub, aes(x=Year, y=log10CR)) +
   geom_hline(yintercept=0,linetype=2, color="#FF0000") +
   geom_smooth(method='lm', aes(x=Year,y=log10CR),se=FALSE, color='turquoise4') +
   geom_point(aes(x=Year,y=log10CR), colour="#000000") +
-  facet_grid(Substance.name~Station,scales="free_y",labeller=label_wrap_gen(width=30)) +
+  facet_grid(Substance.name~Station,scales="free_y",labeller=label_wrap_gen(width=20)) +
   scale_color_manual(values=pal_class) +
   theme_ipsum() +
   labs(subtitle= "Substances in water") +
