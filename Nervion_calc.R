@@ -159,13 +159,20 @@ dfCHASE <- dfCategory %>%
   pivot_wider(id_cols=c(Station,Year),names_from=Category,values_from=CS) %>%
   arrange(Station,Year)
 
+
+  # mutate(Station=ifelse(Station %in% c("L-N10","I-N10"),"L/I-N10")) %>%
+  # mutate(Station=ifelse(Station %in% c("L-N20","E-N20"),"L/I-N10")) %>%
+  
 dfCHASElog <- dfCategory %>%
   ungroup() %>%
-  pivot_wider(id_cols=c(Station,Year),names_from=Category,values_from=CSlog) %>%
-  arrange(Station,Year)
+  filter(Category %in% c("Sediment","Water")) %>%
+  group_by(Station,Year) %>%
+  arrange(desc(CSlog)) %>%
+  slice(1)
+
 
 #dfCHASE %>% group_by(Station) %>% summarise(B=mean(Biota,na.rm=T),S=mean(Sediment,na.rm=T),W=mean(Water,na.rm=T))
-  
+
 
 # ---------------------  plotting ----------------------------------------
 
@@ -179,6 +186,16 @@ dfPlotSW <- dfCategory %>% filter(Category %in% c("Sediment","Water"))
 dfPlotSW$Station <- factor(dfPlotSW$Station,levels=stationlevelsSW)                                  
 dfPlotB$Station <- factor(dfPlotB$Station,levels=stationlevelsB)                                  
 
+dfPlotCHASE <- dfCHASElog
+
+dfPlotCHASE$Station <- factor(dfCHASElog$Station,levels=stationlevelsSW)                
+dfPlotCHASE <- dfPlotCHASE %>%
+  mutate(Category="CHASE") %>%
+  group_by(Station) %>%
+  mutate(RibbonYear=ifelse(Year==min(Year,na.rm=T),1994,Year)) %>%
+  mutate(RibbonYear=ifelse(Year==max(Year,na.rm=T),2020,RibbonYear))
+
+
 CHASEcat<-function(CS){
   if(!is.numeric(CS)) return(NA)
   cat <- ifelse(CS<0.5,1,2)
@@ -187,6 +204,34 @@ CHASEcat<-function(CS){
   cat <- ifelse(CS>10,5,cat)
   return(cat)
 }
+
+alpha_bands<-0.4
+ER0<- -0.5
+ER05<-log10(0.5)
+ER10<-log10(1)
+ER15<-log10(5)
+ER20<-log10(10)
+ERmax <- 3
+
+
+p0 <-ggplot(dfPlotCHASE, aes(x=Year, y=CSlog)) +
+  geom_hline(yintercept=0,linetype=2, color="#FF0000") +
+  geom_ribbon(aes(ymin=ER0,ymax=ER05,x=RibbonYear),fill="#007eff",alpha=alpha_bands)+
+  geom_ribbon(aes(ymin=ER05,ymax=ER10,x=RibbonYear),fill="#00d600",alpha=alpha_bands)+
+  geom_ribbon(aes(ymin=ER10,ymax=ER15,x=RibbonYear),fill="#ffff00",alpha=alpha_bands)+
+  geom_ribbon(aes(ymin=ER15,ymax=ER20,x=RibbonYear),fill="#ff8c2b",alpha=alpha_bands)+
+  geom_ribbon(aes(ymin=ER20,ymax=ERmax,x=RibbonYear),fill="#ff0000",alpha=alpha_bands)+
+  geom_smooth(method='lm', aes(x=Year,y=log10CSlog),se=FALSE, color='turquoise4') +
+  geom_point(aes(x=Year,y=log10CSlog), colour="#000000") +
+  facet_grid(Category~Station,scales="free_y") +
+  scale_color_manual(values=pal_class) +
+  theme_ipsum() +
+  theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
+        panel.spacing = unit(1, "lines")) +
+  xlab("Year") + ylab("log10(CS)")
+
+p0
+ggsave("png/CHASE_SedimentWater.png",p0,dpi=300,units="cm",width=24,height=7)
 
 
 dfPlotSW <- dfPlotSW %>%
@@ -200,7 +245,6 @@ dfPlotSW[nrow(dfPlotSW),"Class"]<-"High"
 
 dfPlotSW$Class <- factor(dfPlotSW$Class,levels=ClassNames)
 
-alpha_bands<-0.4
 
 p1 <-ggplot(dfPlotSW, aes(x=Year, y=CSlog)) +
   geom_hline(yintercept=0,linetype=2, color="#FF0000") +
@@ -303,21 +347,6 @@ stationlevelsB <- c("I-N20","I-N10")
 
 dfSubstance <- df %>%
   mutate(log10CR=log10(CR)) 
-
-# dfSubstance <-dfSubstance %>%
-#   mutate(Substance.name = ifelse(is.na(str_locate(Substance.name,"\\?")),
-#                                    Substance.name,
-#                                    paste0(substr(Substance.name,1,str_locate(Substance.name,"\\?")-1),"\n",substr(Substance.name,str_locate(Substance.name,"\\?")+1,99))
-#   ))
-
-# test <- dfSubstance %>% 
-#   ungroup() %>%
-#   filter(Category %in% c("Water")) %>%
-#   distinct(Substance.name)
-# 
-# test <- test %>%
-#   mutate(n = str_locate(Substance.name,"\\?")) %>%
-
 
 
 dfPlotSsub <-dfSubstance %>% filter(Category %in% c("Sediment"))

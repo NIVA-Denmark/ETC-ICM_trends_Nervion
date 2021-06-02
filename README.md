@@ -7,6 +7,7 @@ ETC-ICM task on environmental trends - CHASE Hazardous substances status for Ner
 * [Import data](#import-to-r)
 * [CHASE Method](#chase-method)
 * [CHASE Results](#chase-results)
+* [Supplementary Results](#supplementary-results)
 
 ### Nervión
 
@@ -28,18 +29,57 @@ dfB <- read_xls(xlfile,sheet="Biota")
 ```
 
 ### CHASE Method
+More details of the CHASE method can be found in [Andersen et al. (2016)](https://link.springer.com/article/10.1007/s10661-016-5121-x)
 
-*comments needed*
+Very briefly;
 
+* We compare measurements of hazardous substances in three categories (phases): 1) Water, 2) Sediment and 3) Biota.
 
-### CHASE Results
+* The average concentration of each substance is calculated for each year and sampling station. This is done for the substances for which there is a recognized threshold value [thresholds_v6.txt](data/thresholds_v6.txt). THis is done by taking the log-mean average.
+
+* For each substance , the Contamination Ratio is calculated by calculating the ratio of the mean concentration versus the threshold value.
+
+* The Contamination Score (CS) is calculated according to the CHASE method, as the sum of CR values divided by the square-root of the number of substances included/observed.
+
+* The contamination score is caclulated for each of the three categories.
+
+* A score greater than 1.0 indicates a contamination problem area. A score less than 1.0 indicates that this is not a problem area.
+
+This figure shows the number of stations each year with data within each category.
 
 ![Plot of station counts](png/station_count.png)
 
-![Timeseries of Contamination Score (CS)](png/timeseries.png)
+### CHASE Results
+
+The first figure shows the CHASE Contamination Sum score at each of the eight sediment/water stations.
+Biota measurements are made at two separate stations and the contamination scores for this category are consistently lower than thos for sediment and water. So, even if we found a grouping of biota and sediment/water sampling points, the biota category contamination scores would have no influence on the overall results.
+
+![Timeseries of CHASE Score](png/CHASE_SedimentWater.png)
+
+![Timeseries of Contamination Score (CS) per Category](png/timeseries.png)
+
+### Supplementary Results
+
+Here the contamination ratios for individual substances are shown. This allows us to see which substances are responsible for the overall status withn each category:
+
+* [Sediment](#contamination-ratios-for-substances-in-sediment)
+* [Water](#contamination-ratios-for-substances-in-water)
+* [Biota](#contamination-ratios-for-substances-in-biota)
+
+#### Contamination ratios for substances in sediment
 
 ![Timeseries of Contamination Ratio (CR) per substance in Sediment](png/substances_Sediment.png)
+
+
+
+#### Contamination ratios for substances in water
+
 ![Timeseries of Contamination Ratio (CR) per substance in Water](png/substances_Water.png)
+
+
+
+#### Contamination ratios for substances in biota
+
 ![Timeseries of Contamination Ratio (CR) per substance in Biota](png/substances_Biota.png)
 
 
