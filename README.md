@@ -11,7 +11,7 @@ ETC-ICM task on environmental trends - CHASE Hazardous substances status for Ner
 
 ### Nervión
 
-![Map of sampling stations](png/HEAT_Nervion2label.png)
+![Figure 1 - Map of sampling stations](png/HEAT_Nervion2label.png)
 
 ### Import data
 
@@ -45,18 +45,20 @@ Very briefly;
 
 * A score greater than 1.0 indicates a contamination problem area. A score less than 1.0 indicates that this is not a problem area.
 
-This figure shows the number of stations each year with data within each category.
+Fig. 2 shows the number of stations each year with data within each category.
 
-![Plot of station counts](png/station_count.png)
+![Figure 2 - Plot of station counts](png/station_count.png)
 
 ### CHASE Results
 
-The first figure shows the CHASE Contamination Sum score at each of the eight sediment/water stations.
+Fig. 3 shows the CHASE Contamination Sum score at each of the eight sediment/water stations.
 Biota measurements are made at two separate stations and the contamination scores for this category are consistently lower than thos for sediment and water. So, even if we found a grouping of biota and sediment/water sampling points, the biota category contamination scores would have no influence on the overall results.
 
-![Timeseries of CHASE Score](png/CHASE_SedimentWater.png)
+![Figure 3 - Timeseries of CHASE Score](png/CHASE_SedimentWater.png)
 
-![Timeseries of Contamination Score (CS) per Category](png/timeseries.png)
+The next figure (Fig. 4) shows the contamination scores within each category. 
+
+![Figure 4 - Timeseries of Contamination Score (CS) per Category](png/timeseries.png)
 
 ### Supplementary Results
 
@@ -68,18 +70,21 @@ Here the contamination ratios for individual substances are shown. This allows u
 
 #### Contamination ratios for substances in sediment
 
-![Timeseries of Contamination Ratio (CR) per substance in Sediment](png/substances_Sediment.png)
+![Figure 5 - Timeseries of Contamination Ratio (CR) per substance in Sediment](png/substances_Sediment.png)
 
 
+<br><br><br><br>
 
 #### Contamination ratios for substances in water
 
-![Timeseries of Contamination Ratio (CR) per substance in Water](png/substances_Water.png)
+![Figure 6 - Timeseries of Contamination Ratio (CR) per substance in Water](png/substances_Water.png)
 
 
+
+<br><br><br><br>
 
 #### Contamination ratios for substances in biota
 
-![Timeseries of Contamination Ratio (CR) per substance in Biota](png/substances_Biota.png)
+![Figure 7 - Timeseries of Contamination Ratio (CR) per substance in Biota](png/substances_Biota.png)
 
 
