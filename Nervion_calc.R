@@ -66,29 +66,13 @@ df <- df %>%
   left_join(dfThresholds,by=c("Variable"="SubstanceES","Matrix type"="Category","Species"="Species")) %>%
   filter(!is.na(ThresholdValue))
   
-# correction factor to normalise sediment concentrations
+# correction factor to SQG* (we multiply value instead of dividing threshold)
 df <- df %>%
-  mutate(factor_SQG=ifelse(`Matrix type`=="Sediment" & ParamGroup=="I-MET", as.numeric(FinePct)*0.01,1)) %>%
-  mutate(factor_org=ifelse(`Matrix type`=="Sediment",100/as.numeric(OrgPct),1))
-
-df$factor_org <- 1
-
-  
-# correction factor for biota fresh vs dry weight
-df <- df %>%
-  #mutate(factor_biota=ifelse(Species=="Mytilus galloprovincialis" & ThresholdBasis=="D",1/0.19,1)) %>%
-  #mutate(factor_biota=ifelse(Species=="Mytilus edulis" & ThresholdBasis=="D",1/0.17,factor_biota)) %>%
-  #mutate(factor_biota=if_else(is.na(factor_biota),1,factor_biota))
-  mutate(factor_biota=1)
-
-# Average dry weight pct
-# Mytilus edulis	Blue mussel			17%
-# Mytilus galloprovincialis	Mediteranean mussel			19%
-
+  mutate(factor_SQG=ifelse(`Matrix type`=="Sediment" & ParamGroup=="I-MET", as.numeric(FinePct)*0.01,1)) 
 
 # calculated corrected concentrations
 df <- df %>%
-  mutate(ValueCorr = ifelse(Operator=="<",0.5,1)*as.numeric(Value)*factor_biota*factor_SQG*factor_org)
+  mutate(ValueCorr = ifelse(Operator=="<",0.5,1)*as.numeric(Value)*factor_SQG)
 
 
 df <-df %>%
