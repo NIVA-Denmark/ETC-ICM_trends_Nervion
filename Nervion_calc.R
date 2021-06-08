@@ -68,11 +68,12 @@ df <- df %>%
   
 # correction factor to SQG* (we multiply value instead of dividing threshold)
 df <- df %>%
-  mutate(factor_SQG=ifelse(`Matrix type`=="Sediment" & ParamGroup=="I-MET", as.numeric(FinePct)*0.01,1)) 
+  mutate(factor_SQG=ifelse(`Matrix type`=="Sediment" & ParamGroup=="I-MET", as.numeric(FinePct)*0.01,1)) %>%
+  mutate(factor_org=ifelse(`Matrix type`=="Sediment",100/as.numeric(OrgPct),1))
 
 # calculated corrected concentrations
 df <- df %>%
-  mutate(ValueCorr = ifelse(Operator=="<",0.5,1)*as.numeric(Value)*factor_SQG)
+  mutate(ValueCorr = ifelse(Operator=="<",0.5,1)*as.numeric(Value)*factor_SQG*factor_org)
 
 
 df <-df %>%
