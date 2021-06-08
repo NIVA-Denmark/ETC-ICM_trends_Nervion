@@ -54,11 +54,11 @@ Fig. 2 shows the number of stations each year with data within each category.
 Fig. 3 shows the CHASE Contamination Sum score at each of the eight sediment/water stations.
 Biota measurements are made at two separate stations and the contamination scores for this category are consistently lower than thos for sediment and water. So, even if we found a grouping of biota and sediment/water sampling points, the biota category contamination scores would have no influence on the overall results.
 
-![Figure 3 - Timeseries of CHASE Score](png/CHASE_SedimentWater.png)
+![Figure 3 - Timeseries of CHASE Score](png/CHASE.png)
 
 The next figure (Fig. 4) shows the contamination scores within each category. 
 
-![Figure 4 - Timeseries of Contamination Score (CS) per Category](png/timeseries.png)
+![Figure 4 - Timeseries of Contamination Score (CS) per Category](png/SedimentWaterBiota.png)
 
 ### Supplementary Results
 

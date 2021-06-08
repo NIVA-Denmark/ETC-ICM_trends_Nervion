@@ -24,27 +24,30 @@ dfW <- dfW %>%
 
 dfB <- dfB %>%
   mutate(Date=as.Date(`Sampling date`,tryFormats = c("%d/%m/%Y")))
+
 dfS <- dfS %>%
   mutate(Date=as.Date(`Sampling date`,tryFormats = c("%d/%m/%Y")))
 
-# load file matching parameter names from AZTI to CHASE parameters
-xlfile<-"data/params_AZTI_CHASE.xlsx"
-dfParams <- read_xlsx(xlfile,sheet="PARAMS") %>%
-  filter(Param!=0)
 
 # ------------- load CHASE threshold values ---------------------------------------
-dfThresholds<-read.table("data/thresholds_v6.txt",sep="\t",header=T,fileEncoding = "UTF-16") %>%
-  filter(is.na(Exclude)) %>% 
-  filter(Biota.Type!="Fish") %>%
-  filter(Category!="BioEffects") %>%
-  arrange(Category,Biota.Type,PARAM,Threshold.Species,Threshold.Tissue) %>%
-  filter(ID!=95) %>% # drop OSPAR thresholds where there is an EU EQS
-  filter(!ID %in% c(222,223,224,225,226)) #  OSPAR proposed PCB water EAC thresholds
+
+xlfile<-"data/thresholds_Nervion_CHASE.xlsx"
+dfThresholds <- read_xlsx(xlfile,sheet="Thresholds")  %>%
+  filter(is.na(Exclude))
 
 
-dfThresholds <- dfThresholds %>%
-  select(ID,PARAM,GROUP,Substance.name,Category,Threshold.Value,Threshold.Unit,Threshold.BASIS,Biota.Type,Threshold.Species,Threshold.Tissue)
+# -------------- normalisation ----------------------------------------------
+dfS_Char  <- dfS %>% 
+  filter(Variable %in% c("% Silt/Clay","% Organic matter")) %>%
+  mutate(Variable=ifelse(Variable=="% Silt/Clay",
+                         "FinePct",
+                         ifelse(Variable=="% Organic matter","OrgPct",Variable))) %>%
+  select(`Sampling point`,Date,Variable,Value)  %>%
+  pivot_wider(names_from=Variable,values_from=Value)
 
+dfS <- dfS %>% 
+  left_join(dfS_Char,by=c("Sampling point", "Date"))
+# normalize sediment to 1% TOC
 
 # ------------- join data ---------------------------------------
 
@@ -59,87 +62,75 @@ dfstn <- df %>%
   mutate(Colour=ifelse(Year %in% c(2000,2010,2020),1,0))
 
 
-
 df <- df %>%
-  mutate(ValueCorr = ifelse(Operator=="<",0.5,1)*as.numeric(Value))
-
+  left_join(dfThresholds,by=c("Variable"="SubstanceES","Matrix type"="Category","Species"="Species")) %>%
+  filter(!is.na(ThresholdValue))
+  
+# correction factor to normalise sediment concentrations
 df <- df %>%
-  left_join(dfParams,by="Variable") %>%
-  filter(!is.na(Param))
+  mutate(factor_SQG=ifelse(`Matrix type`=="Sediment" & ParamGroup=="I-MET", as.numeric(FinePct)*0.01,1)) %>%
+  mutate(factor_org=ifelse(`Matrix type`=="Sediment",100/as.numeric(OrgPct),1))
 
+df$factor_org <- 1
+
+  
+# correction factor for biota fresh vs dry weight
 df <- df %>%
-  group_by(Category=`Matrix type`,Station=`Sampling point`,Date,Variable,Param,Unit,Species,Sum) %>%
+  #mutate(factor_biota=ifelse(Species=="Mytilus galloprovincialis" & ThresholdBasis=="D",1/0.19,1)) %>%
+  #mutate(factor_biota=ifelse(Species=="Mytilus edulis" & ThresholdBasis=="D",1/0.17,factor_biota)) %>%
+  #mutate(factor_biota=if_else(is.na(factor_biota),1,factor_biota))
+  mutate(factor_biota=1)
+
+# Average dry weight pct
+# Mytilus edulis	Blue mussel			17%
+# Mytilus galloprovincialis	Mediteranean mussel			19%
+
+
+# calculated corrected concentrations
+df <- df %>%
+  mutate(ValueCorr = ifelse(Operator=="<",0.5,1)*as.numeric(Value)*factor_biota*factor_SQG*factor_org)
+
+
+df <-df %>%
+  group_by(Category=`Matrix type`,Station=`Sampling point`,Date,Variable,Param,Substance,Sum=GROUP,Unit,Species,Sum,
+           ThresholdValue,ThresholdUnit) %>%
   summarise(Value=mean(ValueCorr,na.rm=T),n=n(),ObsID=paste0(ObsID,collapse=",")) %>% # take average of measurements of same parameter
   ungroup()
 
-df <- df %>%
-  left_join(dfThresholds,by=c("Category","Param"="PARAM"))
+# now sum concentrations for thresholds with sums of different substances
+df <-df %>%
+  group_by(Category,Station,Date,Param,Substance,Unit,Species,
+           ThresholdValue,ThresholdUnit) %>%
+  summarise(Value=sum(Value,na.rm=T),n=sum(n,na.rm=T),ObsID=paste0(ObsID,collapse=",")) %>% 
+  ungroup()
 
-# remove Cadmium obs where species = oyster and threshold species = mytilus (and the other way round)
-dfDrop <- data.frame(Param=c("CD","CD"),
-                     Species=c("Crassostrea gigas","Mytilus galloprovincialis"),
-                     Threshold.Species=c("Mytilus","Oysters"),
-                     Drop=c(T,T))
-
-df <- df %>%
-  left_join(dfDrop,by=c("Param","Species","Threshold.Species"))
-
-df <- df %>% 
-  filter(is.na(Drop)) %>%
-  select(-Drop)
-
-# check that only one threshold is applied to each observation
-
-test <- df %>%
-  group_by(ObsID) %>%
-  summarise(n=n()) %>%
-  filter(n>1) %>%
-  ungroup() 
-
-nrow(test) # should be zero
-df2 <-df # for checking errors
-
-
-# remove values without a threshold 
-df <- df %>%
-  filter(!is.na(Threshold.Value))
 
 # unit conversion factors
 dfUnits <- data.frame(Category=c("Water","Water","Biota","Biota","Sediment","Sediment"),
                       Unit=c("µg/l","mg/l","µg/kg FW","mg/kg FW","µg/kg DW","mg/kg DW"),
-                      Threshold.Unit=c("µg/l","µg/l","µg/kg","µg/kg","µg/kg","µg/kg"),
+                      ThresholdUnit=c("µg/l","µg/l","µg/kg","µg/kg","µg/kg","µg/kg"),
                       UnitFactor=c(1,1000,1,1000,1,1000))
 
 df <- df %>%
-  left_join(dfUnits,by=c("Category","Unit","Threshold.Unit"))
+  left_join(dfUnits,by=c("Category","Unit","ThresholdUnit"))
 
 df <- df %>%
-  mutate(ValueCorr = Value * UnitFactor)
-
-df <- df %>%
-  mutate(Sum=ifelse(is.na(Sum),"",Sum)) %>%
-  mutate(Param=ifelse(Sum=="PCB6","PCB6",Param)) %>%
-  group_by(Category,Station,Date,Param,Substance.name,
-           Threshold.Value,Threshold.Unit,Threshold.BASIS,
-           Biota.Type,Threshold.Species,Threshold.Tissue) %>%
-  summarise(Value=sum(ValueCorr),n=n()) %>%
-  ungroup()
+  mutate(Value = Value * UnitFactor)
 
 
 # take annual averages
 df <- df %>%
   mutate(Year=year(Date),
-         logValue=log(Value))
+         logValue=ifelse(Value<=0,-10,log(Value)))
 
 
 df <- df %>% 
-  group_by(Category,Station,Year,Param,Substance.name,
-           Threshold.Value,Threshold.Unit,Threshold.BASIS,
-           Biota.Type,Threshold.Species,Threshold.Tissue) %>%
+  group_by(Category,Station,Year,Param,Substance,
+           ThresholdValue,ThresholdUnit,Species) %>%
   summarise(n=n(),Mean=mean(Value,na.rm=T),meanOfLog=mean(logValue,na.rm=T),Max=max(Value,na.rm=T),Min=min(Value,na.rm=T)) %>%
   mutate(logMean=exp(meanOfLog)) %>%
-  mutate(CR=Mean/Threshold.Value) %>% 
-  mutate(CRlog=logMean/Threshold.Value) 
+  mutate(CR=Mean/ThresholdValue) %>% 
+  mutate(CRlog=logMean/ThresholdValue) 
 
 #save(df,file="AZTI/CR_values.Rda")
 #load("AZTI/CR_values.Rda")
@@ -154,18 +145,22 @@ dfCategory <- df %>%
   mutate(CS=sumCR/sqrt(n),CSlog=sumCRlog/sqrt(n)) %>%
   mutate(log10CS=log10(CS),log10CSlog=log10(CSlog))
 
+
+dfCategory <- dfCategory %>%
+   mutate(Station=ifelse(Station %in% c("E-N30","I-N10"),"E-N30/I-N10",Station))%>%
+   mutate(Station=ifelse(Station %in% c("E-N20","I-N20"),"E-N20/I-N20",Station))
+
+
 dfCHASE <- dfCategory %>%
   ungroup() %>%
   pivot_wider(id_cols=c(Station,Year),names_from=Category,values_from=CS) %>%
   arrange(Station,Year)
 
 
-  # mutate(Station=ifelse(Station %in% c("L-N10","I-N10"),"L/I-N10")) %>%
-  # mutate(Station=ifelse(Station %in% c("L-N20","E-N20"),"L/I-N10")) %>%
   
 dfCHASElog <- dfCategory %>%
   ungroup() %>%
-  filter(Category %in% c("Sediment","Water")) %>%
+  #filter(Category %in% c("Sediment","Water")) %>%
   group_by(Station,Year) %>%
   arrange(desc(CSlog)) %>%
   slice(1)
@@ -177,18 +172,14 @@ dfCHASElog <- dfCategory %>%
 # ---------------------  plotting ----------------------------------------
 
 
-stationlevelsSW <- c("E-N10","E-N15","E-N17","E-N20","E-N30","L-N10","L-N20","L-RF30")
-stationlevelsB <- c("I-N20","I-N10")
-
-dfPlotB <- dfCategory %>% filter(Category=="Biota")
-dfPlotSW <- dfCategory %>% filter(Category %in% c("Sediment","Water"))
-                                  
-dfPlotSW$Station <- factor(dfPlotSW$Station,levels=stationlevelsSW)                                  
-dfPlotB$Station <- factor(dfPlotB$Station,levels=stationlevelsB)                                  
+stationlevels <- c("E-N10","E-N15","E-N17","E-N20/I-N20","E-N30/I-N10","L-N10","L-N20","L-RF30")
+catlevels <- c("Biota","Water","Sediment")
 
 dfPlotCHASE <- dfCHASElog
 
-dfPlotCHASE$Station <- factor(dfCHASElog$Station,levels=stationlevelsSW)                
+dfPlotCHASE$Station <- factor(dfCHASElog$Station,levels=stationlevels)
+dfPlotCHASE$Category <- factor(dfPlotCHASE$Category,levels=catlevels)
+
 dfPlotCHASE <- dfPlotCHASE %>%
   mutate(Category="CHASE") %>%
   group_by(Station) %>%
@@ -206,13 +197,14 @@ CHASEcat<-function(CS){
 }
 
 alpha_bands<-0.4
-ER0<- -0.5
+ER0<- -2.5
 ER05<-log10(0.5)
 ER10<-log10(1)
 ER15<-log10(5)
 ER20<-log10(10)
 ERmax <- 3
 
+smooth_method <- "lm" # "loess" # 
 
 p0 <-ggplot(dfPlotCHASE, aes(x=Year, y=CSlog)) +
   geom_hline(yintercept=0,linetype=2, color="#FF0000") +
@@ -221,7 +213,7 @@ p0 <-ggplot(dfPlotCHASE, aes(x=Year, y=CSlog)) +
   geom_ribbon(aes(ymin=ER10,ymax=ER15,x=RibbonYear),fill="#ffff00",alpha=alpha_bands)+
   geom_ribbon(aes(ymin=ER15,ymax=ER20,x=RibbonYear),fill="#ff8c2b",alpha=alpha_bands)+
   geom_ribbon(aes(ymin=ER20,ymax=ERmax,x=RibbonYear),fill="#ff0000",alpha=alpha_bands)+
-  geom_smooth(method='lm', aes(x=Year,y=log10CSlog),se=FALSE, color='turquoise4') +
+  geom_smooth(data=,method=smooth_method, aes(x=Year,y=log10CSlog),se=TRUE, color='turquoise4') +
   geom_point(aes(x=Year,y=log10CSlog), colour="#000000") +
   facet_grid(Category~Station,scales="free_y") +
   scale_color_manual(values=pal_class) +
@@ -231,24 +223,27 @@ p0 <-ggplot(dfPlotCHASE, aes(x=Year, y=CSlog)) +
   xlab("Year") + ylab("log10(CS)")
 
 p0
-ggsave("png/CHASE_SedimentWater.png",p0,dpi=300,units="cm",width=24,height=7)
+ggsave("png/CHASE.png",p0,dpi=300,units="cm",width=24,height=7)
 
+catlevels <- c("Sediment","Water","Biota")
 
-dfPlotSW <- dfPlotSW %>%
+dfPlotSWB <- dfCategory %>%
   mutate(Cat=CHASEcat(CS)) %>%
   mutate(Class=ClassNames[Cat])
+dfPlotSWB$Category <- factor(dfPlotSWB$Category,levels=catlevels)
+dfPlotSWB$Station <- factor(dfPlotSWB$Station,levels=stationlevels)
 
-dfPlotSW[nrow(dfPlotSW)+1,"Year"]<-2020
-dfPlotSW[nrow(dfPlotSW),"Station"]<-dfPlotSW$Station[1]
-dfPlotSW[nrow(dfPlotSW),"Category"]<-dfPlotSW$Category[1]
-dfPlotSW[nrow(dfPlotSW),"Class"]<-"High"
+dfPlotSWB[nrow(dfPlotSWB)+1,"Year"]<-2020
+dfPlotSWB[nrow(dfPlotSWB),"Station"]<-dfPlotSWB$Station[1]
+dfPlotSWB[nrow(dfPlotSWB),"Category"]<-dfPlotSWB$Category[1]
+dfPlotSWB[nrow(dfPlotSWB),"Class"]<-"High"
 
-dfPlotSW$Class <- factor(dfPlotSW$Class,levels=ClassNames)
+dfPlotSWB$Class <- factor(dfPlotSWB$Class,levels=ClassNames)
 
 
-p1 <-ggplot(dfPlotSW, aes(x=Year, y=CSlog)) +
+p1 <-ggplot(dfPlotSWB, aes(x=Year, y=CSlog)) +
   geom_hline(yintercept=0,linetype=2, color="#FF0000") +
-  geom_smooth(method='lm', aes(x=Year,y=log10CSlog),se=FALSE, color='turquoise4') +
+  geom_smooth(method=smooth_method, aes(x=Year,y=log10CSlog),se=TRUE, color='turquoise4') +
   geom_point(aes(x=Year,y=log10CSlog), colour="#000000") +
   facet_grid(Category~Station,scales="free_y") +
   scale_color_manual(values=pal_class) +
@@ -258,29 +253,12 @@ p1 <-ggplot(dfPlotSW, aes(x=Year, y=CSlog)) +
   xlab("Year") + ylab("log10(CS)")
 
 p1
-ggsave("png/SedimentWater.png",p1,dpi=300,units="cm",width=24,height=10)
+ggsave("png/SedimentWaterBiota.png",p1,dpi=300,units="cm",width=24,height=14)
 
-dfPlotB[nrow(dfPlotB)+1,"Year"]<-2020
-dfPlotB[nrow(dfPlotB),"Station"]<-dfPlotB$Station[1]
-dfPlotB[nrow(dfPlotB),"Category"]<-dfPlotB$Category[1]
-
-p2 <-ggplot(dfPlotB, aes(x=Year, y=CSlog)) +
-  geom_hline(yintercept=0,linetype=2, color="#FF0000") +
-  geom_smooth(method='lm', aes(x=Year,y=log10CSlog),se=FALSE, color='turquoise4') +
-  geom_point(aes(x=Year,y=log10CSlog), colour="#000000") +
-  facet_grid(Category~Station,scales="free_y") +
-  theme_ipsum() +
-  theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
-        panel.spacing = unit(1, "lines")) +
-  xlab("Year") + ylab("log10(CS)")
-  
-
-p2
-ggsave("png/Biota.png",p2,dpi=300,units="cm",width=14,height=8)
 
 
 dfSubsCount <- df %>%
-  group_by(Category,Year,Param,Substance.name) %>%
+  group_by(Category,Year,Param,Substance) %>%
   summarise(nobs=n())
 
 dfSubsCount <- dfSubsCount %>%
@@ -323,16 +301,6 @@ pstn <-ggplot(dfstn, aes(x=Year,fill=factor(Colour))) +
 pstn
 
 
-layout <- '
-AAAAAAAA
-AAAAAAAA
-###BB###
-'
-pTS <- wrap_plots(A = p1, B = p2, design = layout)
-pTS
-
-ggsave("png/timeseries.png",pTS,dpi=100,units="cm",width=24,height=16)
-
 pcount <- pstn + p3 + plot_layout(ncol=1)
 pcount
 
@@ -352,35 +320,35 @@ dfSubstance <- df %>%
 dfPlotSsub <-dfSubstance %>% filter(Category %in% c("Sediment"))
 df_subs_S <- dfPlotSsub %>%
   ungroup() %>%
-  distinct(Substance.name)%>%
-  arrange(Substance.name)
-df_subs_S <- df_subs_S$Substance.name
+  distinct(Substance)%>%
+  arrange(Substance)
+df_subs_S <- df_subs_S$Substance
 dfPlotSsub$Station <- factor(dfPlotSsub$Station,levels=stationlevelsSW)        
-dfPlotSsub$Substance.name <- factor(dfPlotSsub$Substance.name,levels=df_subs_S)
+dfPlotSsub$Substance <- factor(dfPlotSsub$Substance,levels=df_subs_S)
 
 dfPlotWsub <- dfSubstance %>% filter(Category %in% c("Water"))
 df_subs_W <- dfPlotWsub %>%
   ungroup() %>%
-  distinct(Substance.name)%>%
-  arrange(Substance.name)
-df_subs_W <- df_subs_W$Substance.name
+  distinct(Substance)%>%
+  arrange(Substance)
+df_subs_W <- df_subs_W$Substance
 dfPlotWsub$Station <- factor(dfPlotWsub$Station,levels=stationlevelsSW)        
-dfPlotWsub$Substance.name <- factor(dfPlotWsub$Substance.name,levels=df_subs_W)  
+dfPlotWsub$Substance <- factor(dfPlotWsub$Substance,levels=df_subs_W)  
 
 dfPlotBsub <- dfSubstance %>% filter(Category=="Biota")
 df_subs_B <- dfPlotBsub %>%
   ungroup() %>%
-  distinct(Substance.name) %>%
-  arrange(Substance.name)
-df_subs_B <- df_subs_B$Substance.name
+  distinct(Substance) %>%
+  arrange(Substance)
+df_subs_B <- df_subs_B$Substance
 dfPlotBsub$Station <- factor(dfPlotBsub$Station,levels=stationlevelsB)        
-dfPlotBsub$Substance.name <- factor(dfPlotBsub$Substance.name,levels=df_subs_B)
+dfPlotBsub$Substance <- factor(dfPlotBsub$Substance,levels=df_subs_B)
 
 p4 <-ggplot(dfPlotSsub, aes(x=Year, y=log10CR)) +
   geom_hline(yintercept=0,linetype=2, color="#FF0000") +
-  geom_smooth(method='lm', aes(x=Year,y=log10CR),se=FALSE, color='turquoise4') +
+  geom_smooth(method=smooth_method, aes(x=Year,y=log10CR),se=TRUE, color='turquoise4') +
   geom_point(aes(x=Year,y=log10CR), colour="#000000") +
-  facet_grid(Substance.name~Station,scales="free_y") +
+  facet_grid(Substance~Station,scales="free_y") +
   scale_color_manual(values=pal_class) +
   theme_ipsum() +
   labs(subtitle= "Substances in sediment") +
@@ -395,9 +363,9 @@ ggsave("png/substances_Sediment.png",p4,dpi=100,units="cm",width=24,height=50)
 
 p5 <-ggplot(dfPlotWsub, aes(x=Year, y=log10CR)) +
   geom_hline(yintercept=0,linetype=2, color="#FF0000") +
-  geom_smooth(method='lm', aes(x=Year,y=log10CR),se=FALSE, color='turquoise4') +
+  geom_smooth(method=smooth_method, aes(x=Year,y=log10CR),se=TRUE, color='turquoise4') +
   geom_point(aes(x=Year,y=log10CR), colour="#000000") +
-  facet_grid(Substance.name~Station,scales="free_y",labeller=label_wrap_gen(width=20)) +
+  facet_grid(Substance~Station,scales="free_y",labeller=label_wrap_gen(width=20)) +
   scale_color_manual(values=pal_class) +
   theme_ipsum() +
   labs(subtitle= "Substances in water") +
@@ -411,9 +379,9 @@ ggsave("png/substances_Water.png",p5,dpi=100,units="cm",width=24,height=100)
 
 p6 <-ggplot(dfPlotBsub, aes(x=Year, y=log10CR)) +
   geom_hline(yintercept=0,linetype=2, color="#FF0000") +
-  geom_smooth(method='lm', aes(x=Year,y=log10CR),se=FALSE, color='turquoise4') +
+  geom_smooth(method=smooth_method, aes(x=Year,y=log10CR),se=TRUE, color='turquoise4') +
   geom_point(aes(x=Year,y=log10CR), colour="#000000") +
-  facet_grid(Substance.name~Station,scales="free_y") +
+  facet_grid(Substance~Station,scales="free_y") +
   scale_color_manual(values=pal_class) +
   theme_ipsum() +
   labs(subtitle= "Substances in biota") +
