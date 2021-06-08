@@ -358,7 +358,7 @@ p4 <-ggplot(dfPlotSsub, aes(x=Year, y=log10CR)) +
   xlab("Year") + ylab("log10(CR)")
 
 
-ggsave("png/substances_Sediment.png",p4,dpi=100,units="cm",width=24,height=50)
+ggsave("png/substances_Sediment.png",p4,dpi=100,units="cm",width=24,height=56)
 
 
 p5 <-ggplot(dfPlotWsub, aes(x=Year, y=log10CR)) +
@@ -390,7 +390,7 @@ p6 <-ggplot(dfPlotBsub, aes(x=Year, y=log10CR)) +
         panel.spacing = unit(1, "lines")) +
   xlab("Year") + ylab("log10(CR)")
 
-ggsave("png/substances_Biota.png",p6,dpi=100,units="cm",width=12,height=50)
+ggsave("png/substances_Biota.png",p6,dpi=100,units="cm",width=10,height=40)
 
 
 
