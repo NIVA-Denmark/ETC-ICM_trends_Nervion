@@ -51,7 +51,7 @@ Very briefly;
 
 * We compare measurements of hazardous substances in three categories (phases): 1) Water, 2) Sediment and 3) Biota.
 
-* The average concentration of each substance is calculated for each year and sampling station. This is done for the substances for which there is a recognized threshold value: [thresholds_Nervion_CHASE.xlsx](data/thresholds_Nervion_CHASE.xlsx). This is done by taking the log-mean average.
+* The average concentration of each substance is calculated for each year and sampling station. This is done for the substances for which there is a recognized threshold value: [thresholds_Nervion_CHASE.xlsx](data/Nervion_CHASE_thresholds AZTI.xlsx). This is done by taking the log-mean average.
 
 * For each substance , the Contamination Ratio is calculated as the ratio of the mean concentration to the threshold value.
 
