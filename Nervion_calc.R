@@ -68,18 +68,19 @@ df <- df %>%
   
 # correction factor to SQG* (we multiply value instead of dividing threshold)
 df <- df %>%
-  mutate(factor_SQG=ifelse(`Matrix type`=="Sediment" & ParamGroup=="I-MET", as.numeric(FinePct)*0.01,1)) %>%
-  mutate(factor_org=ifelse(`Matrix type`=="Sediment",100/as.numeric(OrgPct),1))
+  mutate(factor_SQG=ifelse(`Matrix type`=="Sediment" & ParamGroup=="I-MET", as.numeric(FinePct)*0.01,1)) 
+
+# note - no normalisation of sediment conc. to 1% organic content
 
 # correction factor for biota fresh vs dry weight
 df <- df %>%
   mutate(factor_biota=ifelse(Species=="Mytilus galloprovincialis" & ThresholdBasis=="D",1/0.19,1)) %>%
-  mutate(factor_biota=ifelse(Species=="Mytilus edulis" & ThresholdBasis=="D",1/0.17,factor_biota)) %>%
+  mutate(factor_biota=ifelse(Species=="Crassostrea gigas" & ThresholdBasis=="D",1/0.19,factor_biota)) %>%
   mutate(factor_biota=if_else(is.na(factor_biota),1,factor_biota))
 
 # calculated corrected concentrations
 df <- df %>%
-  mutate(ValueCorr = ifelse(Operator=="<",0.5,1)*as.numeric(Value)*factor_SQG*factor_org*factor_biota)
+  mutate(ValueCorr = ifelse(Operator=="<",0.5,1)*as.numeric(Value)*factor_SQG*factor_biota)
 
 
 df <-df %>%
