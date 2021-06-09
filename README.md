@@ -36,7 +36,7 @@ SQG = SQG* / f
 ```
 Actually, here the normalisation is done by multiplying the concentration by f for each sample. In this way, we can take averages of the adjusted concentrations to be compared with the same thresholds across several samples.
 
-In biota, the observed concentrations are measured on a fresh (wet) weight basis. Where threshold values are specified for a dry-weight basis, then the concentrations are divided by an average dry weight fraction (0.19) [OSPAR (2017)](https://oap.ospar.org/en/ospar-assessments/intermediate-assessment-2017/pressures-human-activities/contaminants/status-and-trends-concentrations-polycyclic-aromatic-hydrocarbon/#collapse-assessment-method-196630) to give the corresponding substance concentration on dry-weight basis.
+In biota, the observed concentrations are measured on a fresh (wet) weight basis. Where threshold values are specified for a dry-weight basis, then the concentrations are divided by an average dry weight fraction (0.15) to give the corresponding substance concentration on dry-weight basis.
 
 ```
 conc_DW = conc_FW / avg_dry_weight_fraction 

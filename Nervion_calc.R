@@ -31,7 +31,7 @@ dfS <- dfS %>%
 
 # ------------- load CHASE threshold values ---------------------------------------
 
-xlfile<-"data/thresholds_Nervion_CHASE.xlsx"
+xlfile<-"data/Nervion_CHASE_thresholds AZTI.xlsx"
 dfThresholds <- read_xlsx(xlfile,sheet="Thresholds")  %>%
   filter(is.na(Exclude))
 
@@ -55,6 +55,7 @@ df <- bind_rows(dfW,dfB,dfS)
 df$ObsID <- 1:nrow(df)
 
 
+
 dfstn <- df %>%
   mutate(Date=as.Date(`Sampling date`,tryFormats = c("%d/%m/%Y"))) %>%
   mutate(Year=year(Date)) %>%
@@ -74,19 +75,19 @@ df <- df %>%
 
 # correction factor for biota fresh vs dry weight
 df <- df %>%
-  mutate(factor_biota=ifelse(Species=="Mytilus galloprovincialis" & ThresholdBasis=="D",1/0.19,1)) %>%
-  mutate(factor_biota=ifelse(Species=="Crassostrea gigas" & ThresholdBasis=="D",1/0.19,factor_biota)) %>%
+  mutate(factor_biota=ifelse(Species=="Mytilus galloprovincialis" & ThresholdBasis=="D",1/0.15,1)) %>%
+  mutate(factor_biota=ifelse(Species=="Crassostrea gigas" & ThresholdBasis=="D",1/0.15,factor_biota)) %>%
   mutate(factor_biota=if_else(is.na(factor_biota),1,factor_biota))
 
 # calculated corrected concentrations
 df <- df %>%
   mutate(ValueCorr = ifelse(Operator=="<",0.5,1)*as.numeric(Value)*factor_SQG*factor_biota)
 
-
+# take average of measurements of same parameter
 df <-df %>%
   group_by(Category=`Matrix type`,Station=`Sampling point`,Date,Variable,Param,Substance,Sum=GROUP,Unit,Species,Sum,
            ThresholdValue,ThresholdUnit) %>%
-  summarise(Value=mean(ValueCorr,na.rm=T),n=n(),ObsID=paste0(ObsID,collapse=",")) %>% # take average of measurements of same parameter
+  summarise(Value=mean(ValueCorr,na.rm=T),n=n(),ObsID=paste0(ObsID,collapse=",")) %>% 
   ungroup()
 
 # now sum concentrations for thresholds with sums of different substances
