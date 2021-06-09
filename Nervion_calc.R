@@ -83,6 +83,26 @@ df <- df %>%
 df <- df %>%
   mutate(ValueCorr = ifelse(Operator=="<",0.5,1)*as.numeric(Value)*factor_SQG*factor_biota)
 
+
+# check number of observations for each substance per station
+df_count <- df %>%
+  group_by(`Matrix type`,`Sampling point`,Variable) %>%
+  summarise(n=n()) %>%
+  ungroup() 
+
+df_dropped <- df_count %>%
+  filter(n<3)
+
+write.table(df_dropped,"results/substances_with_few_observations.csv",sep=";",col.names=T,row.names=F)
+
+# select only substance/station combinations where n > 3
+df_count <- df_count %>%
+  filter(n>=3)
+
+df <- df_count %>%
+  left_join(df,by=c("Matrix type","Sampling point","Variable"))
+
+
 # take average of measurements of same parameter
 df <-df %>%
   group_by(Category=`Matrix type`,Station=`Sampling point`,Date,Variable,Param,Substance,Sum=GROUP,Unit,Species,Sum,

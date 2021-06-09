@@ -41,7 +41,11 @@ In biota, the observed concentrations are measured on a fresh (wet) weight basis
 ```
 conc_DW = conc_FW / avg_dry_weight_fraction 
 ```
+#### Number of observations
 
+For each matrix/substance/station combination we check the number of observations, n. If n < 3 then the observations are not included in the assessment.
+
+The list of substance not included can be seen in [substances_with_few_observations.csv](results/substances_with_few_observations.csv)
 
 
 ### CHASE Method
