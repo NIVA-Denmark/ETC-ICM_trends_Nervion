@@ -28,6 +28,22 @@ dfS <- read_xls(xlfile,sheet="Sediment")
 dfB <- read_xls(xlfile,sheet="Biota")
 ```
 
+#### Normalisation
+
+According to [Menchaca et al. (2012)](http://dx.doi.org/10.1080/02757540.2011.651129), threshold values (sediment quality guidelines, SQG\*) for concentrations of metals in sediment are adjusted using the fraction of fine (<63 µM) material, f: 
+```
+SQG = SQG* / f 
+```
+Actually, here the normalisation is done by multiplying the concentration by f for each sample. In this way, we can take averages of the adjusted concentrations to be compared with the same thresholds across several samples.
+
+In biota, the observed concentrations are measured on a fresh (wet) weight basis. Where threshold values are specified for a dry-weight basis, then the concentrations are divided by an average dry weight fraction (0.15) to give the corresponding substance concentration on dry-weight basis.
+
+```
+conc_DW = conc_FW / avg_dry_weight_fraction 
+```
+
+
+
 ### CHASE Method
 More details of the CHASE method can be found in [Andersen et al. (2016)](https://link.springer.com/article/10.1007/s10661-016-5121-x)
 
@@ -41,7 +57,7 @@ Very briefly;
 
 * The Contamination Score (CS) is calculated according to the CHASE method, as the sum of CR values divided by the square-root of the number of substances included/observed.
 
-* The contamination score is caclulated for each of the three categories.
+* The contamination score is calculated for each of the three categories.
 
 * A score greater than 1.0 indicates a contamination problem area. A score less than 1.0 indicates that this is not a problem area.
 
