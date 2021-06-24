@@ -238,6 +238,29 @@ p0 <-ggplot(dfPlotCHASE, aes(x=Year, y=CSlog)) +
 p0
 ggsave("png/CHASE.png",p0,dpi=300,units="cm",width=24,height=7)
 
+p0a <-ggplot(dfPlotCHASE, aes(x=Year, y=CSlog)) +
+  geom_hline(yintercept=0,linetype=2, color="#FF0000") +
+  geom_ribbon(aes(ymin=ER0,ymax=ER05,x=RibbonYear),fill="#007eff",alpha=alpha_bands)+
+  geom_ribbon(aes(ymin=ER05,ymax=ER10,x=RibbonYear),fill="#00d600",alpha=alpha_bands)+
+  geom_ribbon(aes(ymin=ER10,ymax=ER15,x=RibbonYear),fill="#ffff00",alpha=alpha_bands)+
+  geom_ribbon(aes(ymin=ER15,ymax=ER20,x=RibbonYear),fill="#ff8c2b",alpha=alpha_bands)+
+  geom_ribbon(aes(ymin=ER20,ymax=ERmax,x=RibbonYear),fill="#ff0000",alpha=alpha_bands)+
+  geom_smooth(data=,method=smooth_method, aes(x=Year,y=log10CSlog),se=TRUE, color='turquoise4') +
+  geom_point(aes(x=Year,y=log10CSlog), colour="#000000") +
+  facet_wrap(.~Station,ncol=4) +
+  scale_color_manual(values=pal_class) +
+  theme_ipsum() +
+  theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
+        panel.spacing = unit(0.2, "cm"),
+        plot.margin = unit(c(0,0,0,0),units="cm")
+  ) +
+  xlab("Year") + ylab("log10(CS)")
+
+p0a
+ggsave("png/CHASE_report.png",p0,dpi=300,units="cm",width=18,height=10)
+
+
+
 catlevels <- c("Sediment","Water","Biota")
 
 dfPlotSWB <- dfCategory %>%
